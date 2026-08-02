@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Blog feed widget</title>
+  <style>
+    :root {
+      --accent: #0C4466;
+      --accent2: #50b090;
+      --text: #243942;
+      --muted: #3D5A66;
+      --bg: #f7fafb;
+      --card: #ffffff;
+      --line: rgba(12, 68, 102, 0.12);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", sans-serif;
+      background: transparent;
+      color: var(--text);
+    }
+    .feed {
+      max-width: 920px;
+      margin: 0 auto;
+      padding: 8px;
+    }
+    .feed-head {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+    }
+    .feed-head h2 {
+      margin: 0;
+      font-size: 1.25rem;
+      color: var(--accent);
+    }
+    .feed-head a {
+      color: var(--accent2);
+      font-weight: 700;
+      text-decoration: none;
+    }
+    .feed-head a:hover { text-decoration: underline; }
+    .feed-head.hidden { display: none; }
+    .feed-list {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 14px;
+    }
+    @media (min-width: 700px) {
+      .feed-list.cols-2 { grid-template-columns: 1fr 1fr; }
+    }
+    .post {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 14px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      overflow: hidden;
+      text-decoration: none;
+      color: inherit;
+      transition: transform .15s ease, box-shadow .15s ease;
+    }
+    .post:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
+    }
+    .post-media {
+      min-height: 96px;
+      background: var(--bg) center/cover no-repeat;
+    }
+    .post-body { padding: 12px 14px 14px 0; }
+    .post-date {
+      display: block;
+      font-size: 0.78rem;
+      color: var(--accent2);
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+    .post-title {
+      margin: 0 0 6px;
+      font-size: 1rem;
+      line-height: 1.35;
+      color: var(--accent);
+    }
+    .post-excerpt {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      color: var(--muted);
+    }
+    .status {
+      padding: 18px;
+      text-align: center;
+      color: var(--muted);
+    }
+    .post.no-thumb { grid-template-columns: 1fr; }
+    .post.no-thumb .post-body { padding: 14px 16px; }
+  </style>
+</head>
+<body>
+  <div class="feed">
+    <div class="feed-head" id="head">
+      <h2 id="heading">Latest posts</h2>
+      <a id="more" href="#" target="_blank" rel="noopener">All posts →</a>
+    </div>
+    <div id="posts" class="feed-list cols-2">
+      <div class="status">Loading…</div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      /*
+        Reusable Blogger → Google Sites feed widget.
+
+        One hosted page, many websites — configure via URL query params:
+
+          ?blog=https://blog.sudanassociation.se
+          &max=6
+          &title=Senaste%20artiklar
+          &more=Alla%20inl%C3%A4gg%20%E2%86%92
+          &label=Nyheter
+          &cols=2
+          &accent=%230C4466
+          &accent2=%2350b090
+          &hideHeader=0
+
+        Examples:
+          .../sa-blog-feed/?blog=https://blog.sudanassociation.se&max=4
+          .../sa-blog-feed/?blog=https://other.blogspot.com&title=News&max=3
+      */
+
+      var q = new URLSearchParams(location.search);
+
+      function param(name, fallback) {
+        var v = q.get(name);
+        return v === null || v === "" ? fallback : v;
+      }
+
+      function normalizeBlog(input) {
+        var raw = (input || "").trim();
+        if (!raw) return "";
+        if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
+        try {
+          var u = new URL(raw);
+          // Accept either blog homepage or full feed URL
+          if (u.pathname.indexOf("/feeds/posts/") !== -1) {
+            return u.origin + u.pathname.replace(/\/$/, "");
+          }
+          return u.origin;
+        } catch (e) {
+          return "";
+        }
+      }
+
+      var blog = normalizeBlog(param("blog", "https://blog.sudanassociation.se"));
+      var max = Math.min(Math.max(parseInt(param("max", "6"), 10) || 6, 1), 25);
+      var title = param("title", "Senaste artiklar / أحدث المقالات");
+      var moreLabel = param("more", "Alla inlägg →");
+      var label = param("label", "").replace(/^\/+|\/+$/g, "");
+      var cols = param("cols", "2");
+      var hideHeader = param("hideHeader", "0") === "1";
+      var accent = param("accent", "#0C4466");
+      var accent2 = param("accent2", "#50b090");
+      var excerptLen = Math.min(Math.max(parseInt(param("excerpt", "140"), 10) || 140, 40), 400);
+      var fallbackHome = blog || "https://blog.sudanassociation.se";
+
+      document.documentElement.style.setProperty("--accent", accent);
+      document.documentElement.style.setProperty("--accent2", accent2);
+      document.title = title;
+
+      var head = document.getElementById("head");
+      var heading = document.getElementById("heading");
+      var more = document.getElementById("more");
+      var posts = document.getElementById("posts");
+
+      if (hideHeader) head.classList.add("hidden");
+      heading.textContent = title;
+      more.textContent = moreLabel;
+      more.href = fallbackHome + "/";
+      posts.className = "feed-list" + (cols === "1" ? "" : " cols-2");
+
+      if (!blog) {
+        posts.innerHTML = '<div class="status">Missing ?blog= URL</div>';
+        return;
+      }
+
+      var feedPath = blog + "/feeds/posts/default";
+      if (label) feedPath += "/-/" + encodeURIComponent(label);
+      var feedUrl =
+        feedPath +
+        "?alt=json-in-script&callback=saRenderFeed&max-results=" +
+        max;
+
+      function textOf(node) {
+        return node && node.$t ? node.$t : "";
+      }
+
+      function postLink(entry) {
+        var links = entry.link || [];
+        for (var i = 0; i < links.length; i++) {
+          if (links[i].rel === "alternate") return links[i].href;
+        }
+        return fallbackHome + "/";
+      }
+
+      function firstImage(html) {
+        if (!html) return "";
+        var m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+        return m ? m[1] : "";
+      }
+
+      function excerpt(html, maxLen) {
+        var tmp = document.createElement("div");
+        tmp.innerHTML = html || "";
+        var text = (tmp.textContent || tmp.innerText || "").replace(/\s+/g, " ").trim();
+        if (text.length <= maxLen) return text;
+        return text.slice(0, maxLen).replace(/\s+\S*$/, "") + "…";
+      }
+
+      function formatDate(iso) {
+        try {
+          return new Date(iso).toLocaleDateString("sv-SE", {
+            year: "numeric",
+            month: "short",
+            day: "numeric"
+          });
+        } catch (e) {
+          return "";
+        }
+      }
+
+      window.saRenderFeed = function (data) {
+        var entries = (data && data.feed && data.feed.entry) || [];
+        if (!entries.length) {
+          posts.innerHTML = '<div class="status">No posts yet.</div>';
+          return;
+        }
+
+        var feedLink = "";
+        var fl = (data.feed && data.feed.link) || [];
+        for (var i = 0; i < fl.length; i++) {
+          if (fl[i].rel === "alternate") feedLink = fl[i].href;
+        }
+        if (feedLink) more.href = feedLink;
+
+        posts.innerHTML = "";
+        entries.forEach(function (entry) {
+          var html = textOf(entry.content) || textOf(entry.summary);
+          var img = firstImage(html);
+          var href = postLink(entry);
+          var postTitle = textOf(entry.title) || "Post";
+          var date = formatDate(textOf(entry.published));
+          var summary = excerpt(html, excerptLen);
+
+          var a = document.createElement("a");
+          a.className = "post" + (img ? "" : " no-thumb");
+          a.href = href;
+          a.target = "_blank";
+          a.rel = "noopener";
+
+          if (img) {
+            var media = document.createElement("div");
+            media.className = "post-media";
+            media.style.backgroundImage = 'url("' + img.replace(/"/g, "") + '")';
+            a.appendChild(media);
+          }
+
+          var body = document.createElement("div");
+          body.className = "post-body";
+          body.innerHTML =
+            '<span class="post-date"></span>' +
+            '<h3 class="post-title"></h3>' +
+            '<p class="post-excerpt"></p>';
+          body.querySelector(".post-date").textContent = date;
+          body.querySelector(".post-title").textContent = postTitle;
+          body.querySelector(".post-excerpt").textContent = summary;
+          a.appendChild(body);
+          posts.appendChild(a);
+        });
+      };
+
+      var s = document.createElement("script");
+      s.src = feedUrl;
+      s.onerror = function () {
+        posts.innerHTML =
+          '<div class="status">Could not load feed. Check that the blog is public and Site feed is enabled.</div>';
+      };
+      document.body.appendChild(s);
+    })();
+  </script>
+</body>
+</html>
