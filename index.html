@@ -136,7 +136,7 @@
 
         Configure via URL query params:
 
-          ?blog=https://blog.sudanassociation.se
+          ?blog=https://www.softolite.io
           &cols=2
           &rows=3
           &images=1
@@ -157,7 +157,7 @@
           thumb   = Blogger media$thumbnail only
 
         Examples:
-          https://mohgeis.github.io/Blogger-feed-widget/?blog=https://blog.sudanassociation.se&cols=2&rows=2
+          https://mohgeis.github.io/Blogger-feed-widget/?cols=2&rows=2
           https://mohgeis.github.io/Blogger-feed-widget/?blog=https://other.blogspot.com&cols=3&rows=2&images=0
       */
 
@@ -197,7 +197,7 @@
         }
       }
 
-      var blog = normalizeBlog(param("blog", "https://blog.sudanassociation.se"));
+      var blog = normalizeBlog(param("blog", "https://www.softolite.io"));
       var cols = clampInt(param("cols", "2"), 1, 4, 2);
       var rows = clampInt(param("rows", "3"), 1, 10, 3);
       // Optional override: max still works; otherwise cols × rows
@@ -217,7 +217,7 @@
       var accent = param("accent", "#0C4466");
       var accent2 = param("accent2", "#50b090");
       var excerptLen = clampInt(param("excerpt", "140"), 40, 400, 140);
-      var fallbackHome = blog || "https://blog.sudanassociation.se";
+      var fallbackHome = blog || "https://www.softolite.io";
       var useStackLayout = cols > 1;
 
       document.documentElement.style.setProperty("--accent", accent);

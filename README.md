@@ -8,7 +8,7 @@ One hosted page. Many **source blogs** and many **destination sites** — config
 - Live: https://mohgeis.github.io/Blogger-feed-widget/
 
 Default blog (if you open the page with no params):  
-`https://blog.sudanassociation.se`
+`https://www.softolite.io`
 
 ## Embed URL shape
 
@@ -22,7 +22,7 @@ https://mohgeis.github.io/Blogger-feed-widget/?blog=BLOG_URL&cols=2&rows=3&image
 
 | Param | Default | Meaning |
 |-------|---------|---------|
-| `blog` | `https://blog.sudanassociation.se` | Source Blogger homepage (or full feed URL) |
+| `blog` | `https://www.softolite.io` | Source Blogger homepage (or full feed URL) |
 | `cols` | `2` | Max columns (1–4) |
 | `rows` | `3` | Max rows (1–10) |
 | `images` | `1` | Show post images (`1`/`true` or `0`/`false`) |
@@ -49,22 +49,22 @@ Blogger’s feed thumbnail is often **not** the main/featured image when a post 
 
 ### Examples
 
-2 columns × 2 rows, with images (default):
+2 columns × 2 rows, with images (uses default blog):
 
 ```text
-https://mohgeis.github.io/Blogger-feed-widget/?blog=https://blog.sudanassociation.se&cols=2&rows=2
+https://mohgeis.github.io/Blogger-feed-widget/?cols=2&rows=2
 ```
 
 3 columns × 2 rows, **without** images:
 
 ```text
-https://mohgeis.github.io/Blogger-feed-widget/?blog=https://blog.sudanassociation.se&cols=3&rows=2&images=0
+https://mohgeis.github.io/Blogger-feed-widget/?cols=3&rows=2&images=0
 ```
 
 Another blog, 1 column × 5 rows:
 
 ```text
-https://mohgeis.github.io/Blogger-feed-widget/?blog=https://myotherblog.blogspot.com&cols=1&rows=5&title=News
+https://mohgeis.github.io/Blogger-feed-widget/?blog=https://blog.sudanassociation.se&cols=1&rows=5&title=News
 ```
 
 ## Enable GitHub Pages
