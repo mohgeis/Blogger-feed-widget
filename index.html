@@ -247,7 +247,16 @@
         return fallbackHome + "/";
       }
 
-      function firstImage(html) {
+      function upgradeThumb(url) {
+        if (!url) return "";
+        // Blogger thumbs often end with =s72-c — request a larger size for cards
+        return url.replace(/=s\d+(-[a-z0-9-]+)?$/i, "=s640-c");
+      }
+
+      function entryImage(entry, html) {
+        // Prefer media$thumbnail (present even when feed is "Short")
+        var thumb = entry["media$thumbnail"] && entry["media$thumbnail"].url;
+        if (thumb) return upgradeThumb(thumb);
         if (!html) return "";
         var m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
         return m ? m[1] : "";
@@ -293,7 +302,7 @@
         posts.innerHTML = "";
         entries.forEach(function (entry) {
           var html = textOf(entry.content) || textOf(entry.summary);
-          var img = showImages ? firstImage(html) : "";
+          var img = showImages ? entryImage(entry, html) : "";
           var href = postLink(entry);
           var postTitle = textOf(entry.title) || "Post";
           var date = formatDate(textOf(entry.published));
