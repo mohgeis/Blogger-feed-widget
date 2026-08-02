@@ -1,0 +1,234 @@
+<!--
+  Paste into Google Sites:
+  Insert → Embed → Embed code → paste EVERYTHING below this comment → Next → Insert
+  Then drag the embed box taller if needed, and Publish.
+
+  Edit the CONFIG object only.
+-->
+<div id="bfw-root">
+  <div class="bfw-head">
+    <h2 class="bfw-title"></h2>
+    <a class="bfw-more" href="#" target="_blank" rel="noopener"></a>
+  </div>
+  <div class="bfw-list"></div>
+</div>
+
+<style>
+  #bfw-root {
+    --accent: #0C4466;
+    --accent2: #50b090;
+    --text: #243942;
+    --muted: #3D5A66;
+    --bg: #f7fafb;
+    --card: #fff;
+    --line: rgba(12, 68, 102, 0.12);
+    font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", sans-serif;
+    color: var(--text);
+    margin: 0;
+    padding: 0;
+  }
+  #bfw-root .bfw-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin: 0 0 10px;
+  }
+  #bfw-root .bfw-title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--accent);
+  }
+  #bfw-root .bfw-more {
+    color: var(--accent2);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  #bfw-root .bfw-list {
+    display: grid;
+    grid-template-columns: repeat(var(--bfw-cols, 3), minmax(0, 1fr));
+    gap: 10px;
+  }
+  #bfw-root .bfw-post {
+    display: block;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    min-width: 0;
+  }
+  #bfw-root .bfw-media {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    background: var(--bg) center / cover no-repeat;
+  }
+  #bfw-root .bfw-body { padding: 8px 10px 10px; }
+  #bfw-root .bfw-date {
+    display: block;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--accent2);
+    margin-bottom: 3px;
+  }
+  #bfw-root .bfw-post-title {
+    margin: 0;
+    font-size: 0.9rem;
+    line-height: 1.3;
+    color: var(--accent);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  #bfw-root .bfw-status {
+    grid-column: 1 / -1;
+    text-align: center;
+    color: var(--muted);
+    padding: 16px;
+  }
+  @media (max-width: 700px) {
+    #bfw-root .bfw-list { grid-template-columns: 1fr; }
+  }
+</style>
+
+<script>
+(function () {
+  // ========== CONFIG (edit these) ==========
+  var CONFIG = {
+    blog: "https://blog.sudanassociation.se",
+    cols: 3,
+    rows: 1,
+    images: true,
+    title: "Senaste artiklar / أحدث المقالات",
+    more: "Alla inlägg →",
+    accent: "#0C4466",
+    accent2: "#50b090"
+  };
+  // ========================================
+
+  var root = document.getElementById("bfw-root");
+  var list = root.querySelector(".bfw-list");
+  var titleEl = root.querySelector(".bfw-title");
+  var moreEl = root.querySelector(".bfw-more");
+  var max = Math.max(1, (CONFIG.cols || 3) * (CONFIG.rows || 1));
+
+  root.style.setProperty("--accent", CONFIG.accent || "#0C4466");
+  root.style.setProperty("--accent2", CONFIG.accent2 || "#50b090");
+  root.style.setProperty("--bfw-cols", String(CONFIG.cols || 3));
+  titleEl.textContent = CONFIG.title || "Latest posts";
+  moreEl.textContent = CONFIG.more || "All posts →";
+  moreEl.href = (CONFIG.blog || "").replace(/\/$/, "") + "/";
+  list.innerHTML = '<div class="bfw-status">Laddar…</div>';
+
+  function textOf(node) {
+    return node && node.$t ? node.$t : "";
+  }
+
+  function postLink(entry) {
+    var links = entry.link || [];
+    for (var i = 0; i < links.length; i++) {
+      if (links[i].rel === "alternate") return links[i].href;
+    }
+    return CONFIG.blog;
+  }
+
+  function upgradeThumb(url) {
+    return url ? url.replace(/=s\d+(-[a-z0-9-]+)?$/i, "=s640-c") : "";
+  }
+
+  function feedThumb(entry) {
+    var t = entry["media$thumbnail"] && entry["media$thumbnail"].url;
+    return upgradeThumb(t || "");
+  }
+
+  function formatDate(iso) {
+    try {
+      return new Date(iso).toLocaleDateString("sv-SE", {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
+    } catch (e) {
+      return "";
+    }
+  }
+
+  function setMedia(el, url) {
+    if (!el || !url) return;
+    el.style.backgroundImage = 'url("' + url.replace(/"/g, "") + '")';
+  }
+
+  function fetchMainImage(postUrl, mediaEl) {
+    fetch("https://api.microlink.io?url=" + encodeURIComponent(postUrl) + "&meta")
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        var u =
+          d && d.status === "success" && d.data && d.data.image && d.data.image.url;
+        if (u) setMedia(mediaEl, u);
+      })
+      .catch(function () {});
+  }
+
+  window.__bfwRender = function (data) {
+    var entries = ((data && data.feed && data.feed.entry) || []).slice(0, max);
+    if (!entries.length) {
+      list.innerHTML = '<div class="bfw-status">Inga inlägg ännu.</div>';
+      return;
+    }
+
+    var feedLink = "";
+    var fl = (data.feed && data.feed.link) || [];
+    for (var i = 0; i < fl.length; i++) {
+      if (fl[i].rel === "alternate") feedLink = fl[i].href;
+    }
+    if (feedLink) moreEl.href = feedLink;
+
+    list.innerHTML = "";
+    entries.forEach(function (entry) {
+      var href = postLink(entry);
+      var img = CONFIG.images === false ? "" : feedThumb(entry);
+      var a = document.createElement("a");
+      a.className = "bfw-post";
+      a.href = href;
+      a.target = "_blank";
+      a.rel = "noopener";
+
+      var media = null;
+      if (img) {
+        media = document.createElement("div");
+        media.className = "bfw-media";
+        setMedia(media, img);
+        a.appendChild(media);
+        fetchMainImage(href, media);
+      }
+
+      var body = document.createElement("div");
+      body.className = "bfw-body";
+      body.innerHTML =
+        '<span class="bfw-date"></span><h3 class="bfw-post-title"></h3>';
+      body.querySelector(".bfw-date").textContent = formatDate(
+        textOf(entry.published)
+      );
+      body.querySelector(".bfw-post-title").textContent =
+        textOf(entry.title) || "Post";
+      a.appendChild(body);
+      list.appendChild(a);
+    });
+  };
+
+  var blog = (CONFIG.blog || "").replace(/\/$/, "");
+  var s = document.createElement("script");
+  s.src =
+    blog +
+    "/feeds/posts/default?alt=json-in-script&callback=__bfwRender&max-results=" +
+    max;
+  s.onerror = function () {
+    list.innerHTML =
+      '<div class="bfw-status">Kunde inte ladda flödet. Kontrollera Site feed i Blogger.</div>';
+  };
+  document.body.appendChild(s);
+})();
+</script>

@@ -43,7 +43,8 @@ Blogger’s feed thumbnail is often **not** the main/featured image when a post 
 | `label` | _(empty)_ | Optional Blogger label filter |
 | `accent` | `#0C4466` | Main color |
 | `accent2` | `#50b090` | Accent / date color |
-| `excerpt` | `140` | Excerpt length |
+| `excerpt` | `90` | Excerpt length (`0` = hide excerpts, shorter embed) |
+| `compact` | `1` | Tighter spacing for Google Sites embeds (`0` = roomier) |
 | `hideHeader` | `0` | `1` = hide title row |
 | `max` | _(optional)_ | Override total posts instead of `cols × rows` |
 
@@ -74,8 +75,30 @@ https://mohgeis.github.io/Blogger-feed-widget/?blog=https://blog.sudanassociatio
 3. Branch: `main` / `/ (root)` → Save
 4. Open https://mohgeis.github.io/Blogger-feed-widget/
 
-## Google Sites
+## Google Sites — two options
 
-Insert → Embed → **By URL** → paste the full URL **including** query params → Publish.
+### Option A (recommended): Embed HTML code
 
-Source blog must be public, with **Settings → Site feed** enabled.
+Better control of layout; usually feels more “built into” the page.
+
+1. Open [`google-sites-embed.html`](google-sites-embed.html) in this repo  
+2. Edit the `CONFIG` object (`blog`, `cols`, `rows`, titles, colors)  
+3. Copy **everything below the top comment**  
+4. Google Sites → **Insert → Embed → Embed code** → paste → Insert  
+5. Drag the embed box a bit taller if a scrollbar still shows → **Publish**
+
+Google Sites still wraps custom HTML in a sandbox iframe, so you may need a small height drag — but this is usually cleaner than Option B.
+
+### Option B: Embed by URL (GitHub Pages)
+
+1. Insert → Embed → **By URL** → paste:  
+   `https://mohgeis.github.io/Blogger-feed-widget/?blog=https://blog.sudanassociation.se&cols=3&rows=1&compact=1&excerpt=0`  
+2. Drag the bottom edge down until the scrollbar disappears → Publish  
+
+Tips for either option:
+- Prefer `rows: 1` / `rows=1` on the homepage  
+- Use `excerpt=0` (URL) or the HTML snippet (no excerpts) to save height  
+
+Source blog must be public, with **Settings → Site feed** enabled.  
+
+Note: some Google Workspace admins disable custom HTML embeds — if Embed code is missing/blocked, use Option B.

@@ -16,28 +16,33 @@
       --cols: 2;
     }
     * { box-sizing: border-box; }
-    body {
+    html, body {
       margin: 0;
-      font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", sans-serif;
+      padding: 0;
+      /* Avoid an inner scrollbar inside Google Sites / iframe embeds */
+      overflow: hidden;
       background: transparent;
+    }
+    body {
+      font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", sans-serif;
       color: var(--text);
     }
     .feed {
       max-width: 1100px;
       margin: 0 auto;
-      padding: 8px;
+      padding: 4px 2px 2px;
     }
     .feed-head {
       display: flex;
       align-items: baseline;
       justify-content: space-between;
       gap: 12px;
-      margin-bottom: 16px;
+      margin-bottom: 12px;
       flex-wrap: wrap;
     }
     .feed-head h2 {
       margin: 0;
-      font-size: 1.25rem;
+      font-size: 1.15rem;
       color: var(--accent);
     }
     .feed-head a {
@@ -50,7 +55,7 @@
     .feed-list {
       display: grid;
       grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
-      gap: 14px;
+      gap: 12px;
     }
     @media (max-width: 900px) {
       .feed-list { grid-template-columns: repeat(min(2, var(--cols)), minmax(0, 1fr)); }
@@ -61,54 +66,59 @@
     .post {
       display: grid;
       grid-template-columns: 120px 1fr;
-      gap: 14px;
+      gap: 12px;
       background: var(--card);
       border: 1px solid var(--line);
-      border-radius: 14px;
+      border-radius: 12px;
       overflow: hidden;
       text-decoration: none;
       color: inherit;
-      transition: transform .15s ease, box-shadow .15s ease;
       min-width: 0;
-    }
-    .post:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
     }
     .post.stack {
       grid-template-columns: 1fr;
       gap: 0;
     }
     .post-media {
-      min-height: 96px;
+      min-height: 88px;
       background: var(--bg) center/cover no-repeat;
     }
     .post.stack .post-media {
-      min-height: 150px;
+      min-height: 120px;
+      aspect-ratio: 16 / 9;
       width: 100%;
     }
-    .post-body { padding: 12px 14px 14px 0; min-width: 0; }
+    .post-body { padding: 10px 12px 12px 0; min-width: 0; }
     .post.stack .post-body,
-    .post.no-thumb .post-body { padding: 14px 16px; }
+    .post.no-thumb .post-body { padding: 10px 12px 12px; }
     .post-date {
       display: block;
-      font-size: 0.78rem;
+      font-size: 0.72rem;
       color: var(--accent2);
       font-weight: 700;
-      margin-bottom: 4px;
+      margin-bottom: 3px;
     }
     .post-title {
-      margin: 0 0 6px;
-      font-size: 1rem;
-      line-height: 1.35;
+      margin: 0 0 4px;
+      font-size: 0.95rem;
+      line-height: 1.3;
       color: var(--accent);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
     .post-excerpt {
       margin: 0;
-      font-size: 0.9rem;
-      line-height: 1.5;
+      font-size: 0.82rem;
+      line-height: 1.4;
       color: var(--muted);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
     }
+    .post-excerpt.is-empty { display: none; }
     .status {
       padding: 18px;
       text-align: center;
@@ -116,6 +126,21 @@
       grid-column: 1 / -1;
     }
     .post.no-thumb { grid-template-columns: 1fr; }
+
+    /* Tighter layout for Google Sites embeds */
+    body.compact .feed { padding: 0; }
+    body.compact .feed-head { margin-bottom: 8px; }
+    body.compact .feed-head h2 { font-size: 1.05rem; }
+    body.compact .feed-list { gap: 10px; }
+    body.compact .post.stack .post-media {
+      min-height: 96px;
+      aspect-ratio: 16 / 10;
+    }
+    body.compact .post-body,
+    body.compact .post.stack .post-body,
+    body.compact .post.no-thumb .post-body { padding: 8px 10px 10px; }
+    body.compact .post-title { font-size: 0.9rem; }
+    body.compact .post-excerpt { -webkit-line-clamp: 1; font-size: 0.78rem; }
   </style>
 </head>
 <body>
@@ -147,6 +172,8 @@
           &accent=%230C4466
           &accent2=%2350b090
           &hideHeader=0
+          &compact=1
+          &excerpt=90
 
         Total posts shown = cols × rows
 
@@ -214,9 +241,13 @@
       var moreLabel = param("more", "Alla inlägg →");
       var label = param("label", "").replace(/^\/+|\/+$/g, "");
       var hideHeader = parseBool(param("hideHeader", "0"), false);
+      var compact = parseBool(param("compact", "1"), true);
       var accent = param("accent", "#0C4466");
       var accent2 = param("accent2", "#50b090");
-      var excerptLen = clampInt(param("excerpt", "140"), 40, 400, 140);
+      // excerpt=0 hides the summary text (shorter embed)
+      var excerptRaw = param("excerpt", "90");
+      var excerptLen =
+        excerptRaw === "0" ? 0 : clampInt(excerptRaw, 40, 400, 90);
       var fallbackHome = blog || "https://www.softolite.io";
       var useStackLayout = cols > 1;
 
@@ -224,6 +255,7 @@
       document.documentElement.style.setProperty("--accent2", accent2);
       document.documentElement.style.setProperty("--cols", String(cols));
       document.title = title;
+      if (compact) document.body.classList.add("compact");
 
       var head = document.getElementById("head");
       var heading = document.getElementById("heading");
@@ -234,6 +266,23 @@
       heading.textContent = title;
       more.textContent = moreLabel;
       more.href = fallbackHome + "/";
+
+      function fitEmbedHeight() {
+        // Helps some hosts; Google Sites still needs the embed box dragged taller.
+        var h = Math.ceil(document.documentElement.scrollHeight || document.body.scrollHeight || 0);
+        if (h > 0) {
+          document.documentElement.style.height = h + "px";
+          document.body.style.height = h + "px";
+        }
+        try {
+          if (window.parent && window.parent !== window) {
+            window.parent.postMessage(
+              { type: "blogger-feed-widget-resize", height: h },
+              "*"
+            );
+          }
+        } catch (e) {}
+      }
 
       if (!blog) {
         posts.innerHTML = '<div class="status">Missing ?blog= URL</div>';
@@ -400,7 +449,7 @@
           var href = postLink(entry);
           var postTitle = textOf(entry.title) || "Post";
           var date = formatDate(textOf(entry.published));
-          var summary = excerpt(html, excerptLen);
+          var summary = excerptLen > 0 ? excerpt(html, excerptLen) : "";
 
           var a = document.createElement("a");
           var classes = ["post"];
@@ -426,7 +475,12 @@
             '<p class="post-excerpt"></p>';
           body.querySelector(".post-date").textContent = date;
           body.querySelector(".post-title").textContent = postTitle;
-          body.querySelector(".post-excerpt").textContent = summary;
+          var excerptEl = body.querySelector(".post-excerpt");
+          if (summary) {
+            excerptEl.textContent = summary;
+          } else {
+            excerptEl.classList.add("is-empty");
+          }
           a.appendChild(body);
           posts.appendChild(a);
           cards.push(a);
@@ -434,6 +488,9 @@
 
         // Replace feed thumbnails with the real featured/main image (og:image)
         upgradeCardsToMainImages(cards);
+        fitEmbedHeight();
+        window.setTimeout(fitEmbedHeight, 300);
+        window.setTimeout(fitEmbedHeight, 1200);
       };
 
       var s = document.createElement("script");
