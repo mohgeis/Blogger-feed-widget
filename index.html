@@ -13,6 +13,7 @@
       --bg: #f7fafb;
       --card: #ffffff;
       --line: rgba(12, 68, 102, 0.12);
+      --cols: 2;
     }
     * { box-sizing: border-box; }
     body {
@@ -22,7 +23,7 @@
       color: var(--text);
     }
     .feed {
-      max-width: 920px;
+      max-width: 1100px;
       margin: 0 auto;
       padding: 8px;
     }
@@ -48,11 +49,14 @@
     .feed-head.hidden { display: none; }
     .feed-list {
       display: grid;
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(var(--cols), minmax(0, 1fr));
       gap: 14px;
     }
-    @media (min-width: 700px) {
-      .feed-list.cols-2 { grid-template-columns: 1fr 1fr; }
+    @media (max-width: 900px) {
+      .feed-list { grid-template-columns: repeat(min(2, var(--cols)), minmax(0, 1fr)); }
+    }
+    @media (max-width: 600px) {
+      .feed-list { grid-template-columns: 1fr; }
     }
     .post {
       display: grid;
@@ -65,16 +69,27 @@
       text-decoration: none;
       color: inherit;
       transition: transform .15s ease, box-shadow .15s ease;
+      min-width: 0;
     }
     .post:hover {
       transform: translateY(-2px);
       box-shadow: 0 10px 24px rgba(0, 0, 0, 0.1);
     }
+    .post.stack {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
     .post-media {
       min-height: 96px;
       background: var(--bg) center/cover no-repeat;
     }
-    .post-body { padding: 12px 14px 14px 0; }
+    .post.stack .post-media {
+      min-height: 150px;
+      width: 100%;
+    }
+    .post-body { padding: 12px 14px 14px 0; min-width: 0; }
+    .post.stack .post-body,
+    .post.no-thumb .post-body { padding: 14px 16px; }
     .post-date {
       display: block;
       font-size: 0.78rem;
@@ -98,9 +113,9 @@
       padding: 18px;
       text-align: center;
       color: var(--muted);
+      grid-column: 1 / -1;
     }
     .post.no-thumb { grid-template-columns: 1fr; }
-    .post.no-thumb .post-body { padding: 14px 16px; }
   </style>
 </head>
 <body>
@@ -109,7 +124,7 @@
       <h2 id="heading">Latest posts</h2>
       <a id="more" href="#" target="_blank" rel="noopener">All posts →</a>
     </div>
-    <div id="posts" class="feed-list cols-2">
+    <div id="posts" class="feed-list">
       <div class="status">Loading…</div>
     </div>
   </div>
@@ -119,21 +134,24 @@
       /*
         Reusable Blogger → Google Sites feed widget.
 
-        One hosted page, many websites — configure via URL query params:
+        Configure via URL query params:
 
           ?blog=https://blog.sudanassociation.se
-          &max=6
+          &cols=2
+          &rows=3
+          &images=1
           &title=Senaste%20artiklar
           &more=Alla%20inl%C3%A4gg%20%E2%86%92
           &label=Nyheter
-          &cols=2
           &accent=%230C4466
           &accent2=%2350b090
           &hideHeader=0
 
+        Total posts shown = cols × rows
+
         Examples:
-          .../sa-blog-feed/?blog=https://blog.sudanassociation.se&max=4
-          .../sa-blog-feed/?blog=https://other.blogspot.com&title=News&max=3
+          https://mohgeis.github.io/Blogger-feed-widget/?blog=https://blog.sudanassociation.se&cols=2&rows=2
+          https://mohgeis.github.io/Blogger-feed-widget/?blog=https://other.blogspot.com&cols=3&rows=2&images=0
       */
 
       var q = new URLSearchParams(location.search);
@@ -143,13 +161,26 @@
         return v === null || v === "" ? fallback : v;
       }
 
+      function clampInt(value, min, max, fallback) {
+        var n = parseInt(value, 10);
+        if (isNaN(n)) n = fallback;
+        return Math.min(Math.max(n, min), max);
+      }
+
+      function parseBool(value, defaultTrue) {
+        if (value === null || value === undefined || value === "") return defaultTrue;
+        var v = String(value).toLowerCase();
+        if (v === "0" || v === "false" || v === "no" || v === "off") return false;
+        if (v === "1" || v === "true" || v === "yes" || v === "on") return true;
+        return defaultTrue;
+      }
+
       function normalizeBlog(input) {
         var raw = (input || "").trim();
         if (!raw) return "";
         if (!/^https?:\/\//i.test(raw)) raw = "https://" + raw;
         try {
           var u = new URL(raw);
-          // Accept either blog homepage or full feed URL
           if (u.pathname.indexOf("/feeds/posts/") !== -1) {
             return u.origin + u.pathname.replace(/\/$/, "");
           }
@@ -160,19 +191,26 @@
       }
 
       var blog = normalizeBlog(param("blog", "https://blog.sudanassociation.se"));
-      var max = Math.min(Math.max(parseInt(param("max", "6"), 10) || 6, 1), 25);
+      var cols = clampInt(param("cols", "2"), 1, 4, 2);
+      var rows = clampInt(param("rows", "3"), 1, 10, 3);
+      // Optional override: max still works; otherwise cols × rows
+      var max = q.has("max")
+        ? clampInt(param("max", "6"), 1, 40, cols * rows)
+        : cols * rows;
+      var showImages = parseBool(param("images", "1"), true);
       var title = param("title", "Senaste artiklar / أحدث المقالات");
       var moreLabel = param("more", "Alla inlägg →");
       var label = param("label", "").replace(/^\/+|\/+$/g, "");
-      var cols = param("cols", "2");
-      var hideHeader = param("hideHeader", "0") === "1";
+      var hideHeader = parseBool(param("hideHeader", "0"), false);
       var accent = param("accent", "#0C4466");
       var accent2 = param("accent2", "#50b090");
-      var excerptLen = Math.min(Math.max(parseInt(param("excerpt", "140"), 10) || 140, 40), 400);
+      var excerptLen = clampInt(param("excerpt", "140"), 40, 400, 140);
       var fallbackHome = blog || "https://blog.sudanassociation.se";
+      var useStackLayout = cols > 1;
 
       document.documentElement.style.setProperty("--accent", accent);
       document.documentElement.style.setProperty("--accent2", accent2);
+      document.documentElement.style.setProperty("--cols", String(cols));
       document.title = title;
 
       var head = document.getElementById("head");
@@ -184,7 +222,6 @@
       heading.textContent = title;
       more.textContent = moreLabel;
       more.href = fallbackHome + "/";
-      posts.className = "feed-list" + (cols === "1" ? "" : " cols-2");
 
       if (!blog) {
         posts.innerHTML = '<div class="status">Missing ?blog= URL</div>';
@@ -250,17 +287,23 @@
         }
         if (feedLink) more.href = feedLink;
 
+        // Cap to cols × rows (or max override)
+        entries = entries.slice(0, max);
+
         posts.innerHTML = "";
         entries.forEach(function (entry) {
           var html = textOf(entry.content) || textOf(entry.summary);
-          var img = firstImage(html);
+          var img = showImages ? firstImage(html) : "";
           var href = postLink(entry);
           var postTitle = textOf(entry.title) || "Post";
           var date = formatDate(textOf(entry.published));
           var summary = excerpt(html, excerptLen);
 
           var a = document.createElement("a");
-          a.className = "post" + (img ? "" : " no-thumb");
+          var classes = ["post"];
+          if (!img) classes.push("no-thumb");
+          else if (useStackLayout) classes.push("stack");
+          a.className = classes.join(" ");
           a.href = href;
           a.target = "_blank";
           a.rel = "noopener";

@@ -1,6 +1,11 @@
 # Blogger-feed-widget
 
+Reusable Blogger feed page for embedding on Google Sites (or any site that can iframe a URL).
+
 One hosted page. Many **source blogs** and many **destination sites** — configured by URL parameters.
+
+- Repo: https://github.com/mohgeis/Blogger-feed-widget  
+- Live: https://mohgeis.github.io/Blogger-feed-widget/
 
 Default blog (if you open the page with no params):  
 `https://blog.sudanassociation.se`
@@ -8,53 +13,57 @@ Default blog (if you open the page with no params):
 ## Embed URL shape
 
 ```text
-https://YOUR_USERNAME.github.io/sa-blog-feed/?blog=BLOG_URL&max=6&title=Heading
+https://mohgeis.github.io/Blogger-feed-widget/?blog=BLOG_URL&cols=2&rows=3&images=1
 ```
+
+**Posts shown = `cols` × `rows`** (default 2×3 = 6).
 
 ### Parameters
 
 | Param | Default | Meaning |
 |-------|---------|---------|
 | `blog` | `https://blog.sudanassociation.se` | Source Blogger homepage (or full feed URL) |
-| `max` | `6` | Number of posts (1–25) |
+| `cols` | `2` | Max columns (1–4) |
+| `rows` | `3` | Max rows (1–10) |
+| `images` | `1` | Show post images (`1`/`true` or `0`/`false`) |
 | `title` | Senaste artiklar / … | Header text |
 | `more` | Alla inlägg → | “All posts” link label |
 | `label` | _(empty)_ | Optional Blogger label filter |
-| `cols` | `2` | `1` or `2` columns |
 | `accent` | `#0C4466` | Main color |
 | `accent2` | `#50b090` | Accent / date color |
 | `excerpt` | `140` | Excerpt length |
 | `hideHeader` | `0` | `1` = hide title row |
+| `max` | _(optional)_ | Override total posts instead of `cols × rows` |
 
 ### Examples
 
-Sudanese Association (source) on Google Sites A:
+2 columns × 2 rows, with images (default):
 
 ```text
-https://YOUR_USERNAME.github.io/sa-blog-feed/?blog=https://blog.sudanassociation.se&max=4
+https://mohgeis.github.io/Blogger-feed-widget/?blog=https://blog.sudanassociation.se&cols=2&rows=2
 ```
 
-Another Blogger blog on Google Sites B:
+3 columns × 2 rows, **without** images:
 
 ```text
-https://YOUR_USERNAME.github.io/sa-blog-feed/?blog=https://myotherblog.blogspot.com&title=News&max=3&accent=%23111111
+https://mohgeis.github.io/Blogger-feed-widget/?blog=https://blog.sudanassociation.se&cols=3&rows=2&images=0
 ```
 
-Only posts with a label:
+Another blog, 1 column × 5 rows:
 
 ```text
-https://YOUR_USERNAME.github.io/sa-blog-feed/?blog=https://blog.sudanassociation.se&label=نشاطات&max=5
+https://mohgeis.github.io/Blogger-feed-widget/?blog=https://myotherblog.blogspot.com&cols=1&rows=5&title=News
 ```
 
-## Publish once on GitHub Pages
+## Enable GitHub Pages
 
-1. Create public repo `sa-blog-feed`
-2. Upload `index.html` + `.nojekyll`
-3. Settings → Pages → branch `main` / root
-4. Use different query strings per Google Site
+1. Repo **Settings → Pages**
+2. Source: **Deploy from a branch**
+3. Branch: `main` / `/ (root)` → Save
+4. Open https://mohgeis.github.io/Blogger-feed-widget/
 
 ## Google Sites
 
-Insert → Embed → **By URL** → paste the full URL **including** `?blog=...` → Publish.
+Insert → Embed → **By URL** → paste the full URL **including** query params → Publish.
 
 Source blog must be public, with **Settings → Site feed** enabled.
