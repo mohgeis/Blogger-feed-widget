@@ -85,15 +85,17 @@ Better control of layout; usually feels more “built into” the page.
 2. Edit the `CONFIG` object (`blog`, `cols`, `rows`, titles, colors)  
 3. Copy **everything below the top comment**  
 4. Google Sites → **Insert → Embed → Embed code** → paste → Insert  
-5. Drag the embed box a bit taller if a scrollbar still shows → **Publish**
+5. Resize the embed box to match the content → **Publish**
+   - **Scrollbar** → drag the bottom edge **down**
+   - **Empty gap under the last row** → drag the bottom edge **up**
 
-Google Sites still wraps custom HTML in a sandbox iframe, so you may need a small height drag — but this is usually cleaner than Option B.
+Google Sites always uses a fixed iframe height. The widget cannot auto-shrink that box; you set the height by dragging.
 
 ### Option B: Embed by URL (GitHub Pages)
 
 1. Insert → Embed → **By URL** → paste:  
    `https://mohgeis.github.io/Blogger-feed-widget/?blog=https://blog.sudanassociation.se&cols=3&rows=1&compact=1&excerpt=0`  
-2. Drag the bottom edge down until the scrollbar disappears → Publish  
+2. Resize the embed: drag **down** if scrollbar, drag **up** if empty gap under cards → Publish  
 
 Tips for either option:
 - Prefer `rows: 1` / `rows=1` on the homepage  

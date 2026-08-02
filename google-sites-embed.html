@@ -1,10 +1,22 @@
 <!--
   Paste into Google Sites:
   Insert → Embed → Embed code → paste EVERYTHING below this comment → Next → Insert
-  Then drag the embed box taller if needed, and Publish.
+
+  If you see empty space UNDER the cards: click the embed and drag the BOTTOM
+  edge UP until the gap is gone (Sites uses a fixed iframe height).
 
   Edit the CONFIG object only.
 -->
+<style>
+  html, body {
+    margin: 0 !important;
+    padding: 0 !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    background: transparent !important;
+  }
+</style>
 <div id="bfw-root">
   <div class="bfw-head">
     <h2 class="bfw-title"></h2>
@@ -26,6 +38,8 @@
     color: var(--text);
     margin: 0;
     padding: 0;
+    display: block;
+    line-height: normal;
   }
   #bfw-root .bfw-head {
     display: flex;
@@ -33,7 +47,7 @@
     align-items: baseline;
     gap: 12px;
     flex-wrap: wrap;
-    margin: 0 0 10px;
+    margin: 0 0 8px;
   }
   #bfw-root .bfw-title {
     margin: 0;
@@ -49,7 +63,10 @@
     display: grid;
     grid-template-columns: repeat(var(--bfw-cols, 3), minmax(0, 1fr));
     gap: 10px;
+    margin: 0;
+    padding: 0;
   }
+  #bfw-root .bfw-list:empty { display: none; }
   #bfw-root .bfw-post {
     display: block;
     background: var(--card);
@@ -217,6 +234,12 @@
       a.appendChild(body);
       list.appendChild(a);
     });
+
+    // Keep host document only as tall as the cards (avoids extra blank area)
+    document.documentElement.style.height = "auto";
+    document.body.style.height = "auto";
+    document.documentElement.style.minHeight = "0";
+    document.body.style.minHeight = "0";
   };
 
   var blog = (CONFIG.blog || "").replace(/\/$/, "");

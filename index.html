@@ -17,20 +17,23 @@
     }
     * { box-sizing: border-box; }
     html, body {
-      margin: 0;
-      padding: 0;
+      margin: 0 !important;
+      padding: 0 !important;
+      height: auto !important;
+      min-height: 0 !important;
       /* Avoid an inner scrollbar inside Google Sites / iframe embeds */
       overflow: hidden;
-      background: transparent;
+      background: transparent !important;
     }
     body {
       font-family: "Segoe UI", Tahoma, "Noto Sans Arabic", sans-serif;
       color: var(--text);
+      display: block;
     }
     .feed {
       max-width: 1100px;
       margin: 0 auto;
-      padding: 4px 2px 2px;
+      padding: 0;
     }
     .feed-head {
       display: flex;
@@ -268,14 +271,17 @@
       more.href = fallbackHome + "/";
 
       function fitEmbedHeight() {
-        // Helps some hosts; Google Sites still needs the embed box dragged taller.
-        var h = Math.ceil(document.documentElement.scrollHeight || document.body.scrollHeight || 0);
-        if (h > 0) {
-          document.documentElement.style.height = h + "px";
-          document.body.style.height = h + "px";
-        }
+        // Keep document only as tall as the feed (do not lock a large fixed height —
+        // that creates an empty gap under the last row in Google Sites).
+        document.documentElement.style.height = "auto";
+        document.body.style.height = "auto";
+        document.documentElement.style.minHeight = "0";
+        document.body.style.minHeight = "0";
+        var h = Math.ceil(
+          (document.querySelector(".feed") || document.body).getBoundingClientRect().height
+        );
         try {
-          if (window.parent && window.parent !== window) {
+          if (window.parent && window.parent !== window && h > 0) {
             window.parent.postMessage(
               { type: "blogger-feed-widget-resize", height: h },
               "*"
