@@ -140,6 +140,7 @@
           &cols=2
           &rows=3
           &images=1
+          &imageSource=auto
           &title=Senaste%20artiklar
           &more=Alla%20inl%C3%A4gg%20%E2%86%92
           &label=Nyheter
@@ -148,6 +149,12 @@
           &hideHeader=0
 
         Total posts shown = cols × rows
+
+        imageSource:
+          auto    = body image → featured/og:image (main) → feed thumbnail
+          og      = featured/og:image only (main post image)
+          content = first image in feed body
+          thumb   = Blogger media$thumbnail only
 
         Examples:
           https://mohgeis.github.io/Blogger-feed-widget/?blog=https://blog.sudanassociation.se&cols=2&rows=2
@@ -198,6 +205,11 @@
         ? clampInt(param("max", "6"), 1, 40, cols * rows)
         : cols * rows;
       var showImages = parseBool(param("images", "1"), true);
+      // auto | og | content | thumb
+      var imageSource = String(param("imageSource", "auto")).toLowerCase();
+      if (["auto", "og", "content", "thumb"].indexOf(imageSource) === -1) {
+        imageSource = "auto";
+      }
       var title = param("title", "Senaste artiklar / أحدث المقالات");
       var moreLabel = param("more", "Alla inlägg →");
       var label = param("label", "").replace(/^\/+|\/+$/g, "");
@@ -253,13 +265,94 @@
         return url.replace(/=s\d+(-[a-z0-9-]+)?$/i, "=s640-c");
       }
 
-      function entryImage(entry, html) {
-        // Prefer media$thumbnail (present even when feed is "Short")
-        var thumb = entry["media$thumbnail"] && entry["media$thumbnail"].url;
-        if (thumb) return upgradeThumb(thumb);
+      function isSkippableImage(url) {
+        if (!url) return true;
+        var u = url.toLowerCase();
+        return (
+          u.indexOf("blogblog.com") !== -1 ||
+          u.indexOf("/b16") !== -1 ||
+          u.indexOf("favicon") !== -1 ||
+          /[=/]s\d{1,2}([-.]|$)/.test(u)
+        );
+      }
+
+      function firstContentImage(html) {
         if (!html) return "";
-        var m = html.match(/<img[^>]+src=["']([^"']+)["']/i);
-        return m ? m[1] : "";
+        var re = /<img[^>]+src=["']([^"']+)["']/gi;
+        var m;
+        while ((m = re.exec(html))) {
+          if (!isSkippableImage(m[1])) return m[1];
+        }
+        return "";
+      }
+
+      function feedThumb(entry) {
+        var thumb = entry["media$thumbnail"] && entry["media$thumbnail"].url;
+        return thumb ? upgradeThumb(thumb) : "";
+      }
+
+      // Sync best-effort image (feed only). media$thumbnail is often NOT the
+      // featured/main image when a post has several pictures.
+      function syncEntryImage(entry, html) {
+        var contentImg = firstContentImage(html);
+        var thumb = feedThumb(entry);
+        if (imageSource === "content") return contentImg;
+        if (imageSource === "thumb") return thumb;
+        if (imageSource === "og") return thumb || contentImg; // placeholder until og loads
+        // auto: prefer body image when feed includes HTML (Full), else thumb
+        return contentImg || thumb;
+      }
+
+      function setCardImage(card, url) {
+        if (!card || !url || isSkippableImage(url)) return;
+        var media = card.querySelector(".post-media");
+        if (!media) {
+          media = document.createElement("div");
+          media.className = "post-media";
+          card.insertBefore(media, card.firstChild);
+          card.classList.remove("no-thumb");
+          if (useStackLayout) card.classList.add("stack");
+        }
+        media.style.backgroundImage = 'url("' + url.replace(/"/g, "") + '")';
+      }
+
+      // Featured / social main image (og:image) — correct when feed thumb is wrong
+      function fetchMainImage(postUrl) {
+        var api =
+          "https://api.microlink.io?url=" +
+          encodeURIComponent(postUrl) +
+          "&meta";
+        return fetch(api)
+          .then(function (r) {
+            return r.json();
+          })
+          .then(function (d) {
+            if (
+              d &&
+              d.status === "success" &&
+              d.data &&
+              d.data.image &&
+              d.data.image.url
+            ) {
+              return d.data.image.url;
+            }
+            return "";
+          })
+          .catch(function () {
+            return "";
+          });
+      }
+
+      function upgradeCardsToMainImages(cards) {
+        if (!showImages) return;
+        if (imageSource !== "auto" && imageSource !== "og") return;
+        cards.forEach(function (card) {
+          var href = card.getAttribute("href");
+          if (!href) return;
+          fetchMainImage(href).then(function (mainUrl) {
+            if (mainUrl) setCardImage(card, mainUrl);
+          });
+        });
       }
 
       function excerpt(html, maxLen) {
@@ -300,9 +393,10 @@
         entries = entries.slice(0, max);
 
         posts.innerHTML = "";
+        var cards = [];
         entries.forEach(function (entry) {
           var html = textOf(entry.content) || textOf(entry.summary);
-          var img = showImages ? entryImage(entry, html) : "";
+          var img = showImages ? syncEntryImage(entry, html) : "";
           var href = postLink(entry);
           var postTitle = textOf(entry.title) || "Post";
           var date = formatDate(textOf(entry.published));
@@ -335,7 +429,11 @@
           body.querySelector(".post-excerpt").textContent = summary;
           a.appendChild(body);
           posts.appendChild(a);
+          cards.push(a);
         });
+
+        // Replace feed thumbnails with the real featured/main image (og:image)
+        upgradeCardsToMainImages(cards);
       };
 
       var s = document.createElement("script");

@@ -25,7 +25,19 @@ https://mohgeis.github.io/Blogger-feed-widget/?blog=BLOG_URL&cols=2&rows=3&image
 | `blog` | `https://blog.sudanassociation.se` | Source Blogger homepage (or full feed URL) |
 | `cols` | `2` | Max columns (1–4) |
 | `rows` | `3` | Max rows (1–10) |
-| `images` | `1` | Show post images (`1`/`true` or `0`/`false`). Uses Blogger `media$thumbnail` (works with Short feeds) |
+| `images` | `1` | Show post images (`1`/`true` or `0`/`false`) |
+| `imageSource` | `auto` | Which image to use (see below) |
+
+### Image source (`imageSource`)
+
+Blogger’s feed thumbnail is often **not** the main/featured image when a post has several pictures.
+
+| Value | Behavior |
+|-------|----------|
+| `auto` (default) | Show feed image first, then upgrade to the post’s **main featured image** (`og:image`) |
+| `og` | Use the main featured image only |
+| `content` | First image from the feed HTML body (needs Full / Until jump break feed) |
+| `thumb` | Blogger `media$thumbnail` only (fast, may be wrong if multiple images) |
 | `title` | Senaste artiklar / … | Header text |
 | `more` | Alla inlägg → | “All posts” link label |
 | `label` | _(empty)_ | Optional Blogger label filter |
